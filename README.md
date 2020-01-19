@@ -1,6 +1,8 @@
 # Android-MVVM-Project
 
 This is a demo application developed using Android archictecture components. This is a MVVM(Model View ViewModel) project.
+You can lear more about MVVM design pattern here:
+https://en.wikipedia.org/wiki/Model–view–viewmodel
 
 # Description
 
