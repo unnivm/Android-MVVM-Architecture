@@ -8,3 +8,14 @@ This project will download some json file with wikipedia links for animals and t
 Please find the image of the application.
 
 ![image](https://user-images.githubusercontent.com/968987/72685971-7dd9d000-3b15-11ea-96d0-0d15e4e1f822.png)
+
+# How it is done
+
+The application make use of the following components:
+
+1. Repository
+2. LiveData
+3. Recycler View
+4. ViewModel
+5. Android annotations
+
