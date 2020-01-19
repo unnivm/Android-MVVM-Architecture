@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">PetStore</string>
+    <string name="in_office">Thank you for getting in touch with us. We’ll get back to you as soon as possible</string>
+    <string name="out_office">Work hours has ended. Please contact us again on the next work day</string>
+</resources>
