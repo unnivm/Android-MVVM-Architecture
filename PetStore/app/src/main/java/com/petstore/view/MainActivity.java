@@ -1,8 +1,6 @@
 package com.petstore.view;
 
-import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -14,18 +12,15 @@ import com.petstore.model.Config;
 import com.petstore.model.Pet;
 import com.petstore.model.repository.PetRepository;
 import com.petstore.view.adaptor.PetAdaptor;
-import com.petstore.view.util.BitmapCache;
-import com.petstore.view.util.DownloadImageTask;
 import com.petstore.view.util.Utils;
 import com.petstore.viewmodel.ConfigurationViewModel;
+import com.petstore.viewmodel.PetImageViewModel;
 import com.petstore.viewmodel.PetListViewModel;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.CallSuper;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -42,15 +37,6 @@ public class MainActivity extends AppCompatActivity {
     private PetRepository petRepository;
     /** pet adaptor **/
     private PetAdaptor petAdaptor;
-
-    /** total image **/
-    private int total = 0;
-    /** current downloading image **/
-    private int current = 0;
-    /** pet list **/
-    private final List<Pet> images = new ArrayList<>();
-    /** live data object **/
-    private final MutableLiveData<List<Pet>> imageLiveData = new MutableLiveData<>();
     /** working hours **/
     private String workingHours;
 
@@ -133,21 +119,19 @@ public class MainActivity extends AppCompatActivity {
         viewModel.getPetListObservable().observe(this, new Observer<List<Pet>>() {
             @Override
             public void onChanged(List<Pet> ps) {
-                total = ps.size();
-                // set it to pet adaptor
-                for (Pet p : ps) {
-                    downloadImage(p);
-                }
-                registerImageObserver();
+                registerPetImageObsrver(ps);
             }
         });
     }
 
     /**
-     *
+     * register image observer
+     * @param pets
      */
-    private void registerImageObserver() {
-        imageLiveData.observe(this, new Observer<List<Pet>>() {
+    private void registerPetImageObsrver(List<Pet>pets) {
+        petRepository.setPetList(pets);
+        PetImageViewModel petImageViewModel = new PetImageViewModel(petRepository, MainActivity.this.getApplication());
+        petImageViewModel.getPetImageObservable().observe(this, new Observer<List<Pet>>() {
             @Override
             public void onChanged(List<Pet> pets) {
                 petAdaptor.setPetList(pets);
@@ -155,40 +139,4 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * download image from endpoint and sets image to pet
-     * object
-     *
-     * @param p
-     */
-    private void downloadImage(final Pet p) {
-        current += 1;
-        try {
-            Bitmap bitmap = BitmapCache.getInstance().getBitmap(p.getImageUrl());
-            if (bitmap != null) {
-                p.setImage(bitmap);
-            }
-
-            DownloadImageTask task = new DownloadImageTask();
-            task.setHttpListener(new DownloadImageTask.HttpCallback() {
-                @Override
-                public void onPostExecute(final Bitmap bitmap) {
-                    p.setImage(Bitmap.createScaledBitmap(bitmap, 140, 140, false));
-                    images.add(p);
-
-                    if (current >= total) {
-                        imageLiveData.setValue(images);
-                    }
-                }
-
-                @Override
-                public void onPreExecute() {
-                }
-            });
-
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, p.getImageUrl());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

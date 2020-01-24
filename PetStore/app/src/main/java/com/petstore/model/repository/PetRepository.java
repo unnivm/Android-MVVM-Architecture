@@ -1,6 +1,8 @@
 package com.petstore.model.repository;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
@@ -11,6 +13,8 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.petstore.model.Config;
 import com.petstore.model.Pet;
+import com.petstore.view.util.BitmapCache;
+import com.petstore.view.util.DownloadImageTask;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 public class PetRepository {
@@ -54,6 +59,19 @@ public class PetRepository {
      * Live data object for config
      **/
     private MutableLiveData<Config> config;
+
+    /** total number of images **/
+    private int total = 0;
+
+    private int current = 0;
+
+    /** list of pets **/
+    private List<Pet>images;
+
+    /** Live data for image pet **/
+    private final MutableLiveData<List<Pet>> imageLiveData = new MutableLiveData<>();
+
+    private List<Pet>pets;
 
     public PetRepository(final Context context, int method) {
         queue = Volley.newRequestQueue(context);
@@ -96,6 +114,17 @@ public class PetRepository {
         return config;
     }
 
+    /**
+     * return list of pets with imsged
+     * @return MutableLiveData<List<Pet>>
+     */
+    public MutableLiveData<List<Pet>> getPetImageList() {
+        return imageLiveData;
+    }
+
+    /**
+     *
+     */
     public void getConfigurationData() {
         config = new MutableLiveData<>();
         Map<String, String> params = new HashMap<>();
@@ -119,13 +148,64 @@ public class PetRepository {
     }
 
     /**
+     *
+     */
+    public void downloadImages() {
+        total = pets.size();
+        images = new ArrayList<>();
+        for(Pet p: pets) {
+            downloadImage(p);
+        }
+    }
+
+    /**
+     *
+     * @param p
+     */
+    private void downloadImage(final Pet p) {
+        current += 1;
+        try {
+            Bitmap bitmap = BitmapCache.getInstance().getBitmap(p.getImageUrl());
+            if (bitmap != null) {
+                p.setImage(bitmap);
+            }
+
+            DownloadImageTask task = new DownloadImageTask();
+            task.setHttpListener(new DownloadImageTask.HttpCallback() {
+                @Override
+                public void onPostExecute(final Bitmap bitmap) {
+                    p.setImage(Bitmap.createScaledBitmap(bitmap, 140, 140, false));
+                    images.add(p);
+
+                    if (current >= total) {
+                        imageLiveData.setValue(images);
+                    }
+                }
+
+                @Override
+                public void onPreExecute() {
+                }
+            });
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, p.getImageUrl());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * sets pets list
+     * @param pets
+     */
+    public void setPetList(List<Pet> pets) {
+        this.pets = pets;
+    }
+
+    /**
      * parse pets json object
      *
      * @param jsonObject
      */
     private List<Pet> parsePetResponse(JSONObject jsonObject) {
-        System.out.println(" response :: " + jsonObject);
-
         try {
             JSONArray jsonArray = jsonObject.getJSONArray("pets");
             int size = jsonArray == null ? 0 : jsonArray.length();
@@ -153,8 +233,6 @@ public class PetRepository {
      * @return
      */
     private Config parseConfigResponse(JSONObject jsonObject) {
-        System.out.println(" response :: " + jsonObject);
-
         try {
             JSONObject settings = jsonObject.getJSONObject("settings");
             Config config = new Config();
@@ -169,5 +247,4 @@ public class PetRepository {
         }
         return null;
     }
-
 }
